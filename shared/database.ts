@@ -1,3 +1,8 @@
+// IMPORTANT: This file was manually updated because the Supabase CLI
+// could not be run in the current environment (Docker not available).
+// If you make changes to the database schema, you will need to update
+// this file manually, or regenerate it using `supabase gen types typescript`.
+
 export type Json =
   | string
   | number
@@ -92,6 +97,190 @@ export type Database = {
             columns: ['conversation_id'];
             isOneToOne: false;
             referencedRelation: 'conversations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      patients: {
+        Row: {
+          id: string;
+          user_id: string;
+          first_name: string;
+          last_name: string;
+          date_of_birth: string | null;
+          medical_record_number: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          first_name: string;
+          last_name: string;
+          date_of_birth?: string | null;
+          medical_record_number?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          first_name?: string;
+          last_name?: string;
+          date_of_birth?: string | null;
+          medical_record_number?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'patients_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      scans: {
+        Row: {
+          id: string;
+          patient_id: string;
+          scan_type: string;
+          status: string;
+          image_count: number;
+          processing_started_at: string | null;
+          processing_completed_at: string | null;
+          scan_data: Json | null;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          patient_id: string;
+          scan_type: string;
+          status: string;
+          image_count?: number;
+          processing_started_at?: string | null;
+          processing_completed_at?: string | null;
+          scan_data?: Json | null;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          patient_id?: string;
+          scan_type?: string;
+          status?: string;
+          image_count?: number;
+          processing_started_at?: string | null;
+          processing_completed_at?: string | null;
+          scan_data?: Json | null;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'scans_patient_id_fkey';
+            columns: ['patient_id'];
+            isOneToOne: false;
+            referencedRelation: 'patients';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      orthoses: {
+        Row: {
+          id: string;
+          scan_id: string;
+          clinical_parameters: Json;
+          openscad_code: string;
+          generated_at: string | null;
+          status: string | null;
+        };
+        Insert: {
+          id?: string;
+          scan_id: string;
+          clinical_parameters: Json;
+          openscad_code: string;
+          generated_at?: string | null;
+          status?: string | null;
+        };
+        Update: {
+          id?: string;
+          scan_id?: string;
+          clinical_parameters?: Json;
+          openscad_code?: string;
+          generated_at?: string | null;
+          status?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'orthoses_scan_id_fkey';
+            columns: ['scan_id'];
+            isOneToOne: false;
+            referencedRelation: 'scans';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      processing_jobs: {
+        Row: {
+          id: string;
+          scan_id: string;
+          status: string;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          scan_id: string;
+          status?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          scan_id?: string;
+          status?: string;
+          created_at?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'processing_jobs_scan_id_fkey';
+            columns: ['scan_id'];
+            isOneToOne: false;
+            referencedRelation: 'scans';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      clinical_parameters: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          name: string;
+          parameters: Json;
+          created_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          name: string;
+          parameters: Json;
+          created_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          name?: string;
+          parameters?: Json;
+          created_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'clinical_parameters_user_id_fkey';
+            columns: ['user_id'];
+            isOneToOne: false;
+            referencedRelation: 'users';
             referencedColumns: ['id'];
           },
         ];
