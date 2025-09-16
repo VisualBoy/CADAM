@@ -14,7 +14,10 @@ import { ChatSection } from '@/components/chat/ChatSection';
 import { Button } from '@/components/ui/button';
 import { ChevronsRight } from 'lucide-react';
 import { ViewerSection } from '@/components/viewer/ViewerSection';
-import { ParameterSection } from '@/components/parameter/ParameterSection';
+import {
+  ClinicalParameterEditor,
+  ClinicalParameters,
+} from '@/components/parameter/ClinicalParameterEditor';
 import { useBlob } from '@/contexts/BlobContext';
 import { useColor } from '@/contexts/ColorContext';
 
@@ -40,13 +43,65 @@ export function ParametricEditor() {
   const { currentMessage, setCurrentMessage } = useCurrentMessage();
   const { setBlob } = useBlob();
   const { setColor } = useColor();
-  const [isParametersPanelCollapsed, setIsParametersPanelCollapsed] =
-    useState(false);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const chatPanelRef = useRef<ImperativePanelHandle>(null);
   const parameterPanelRef = useRef<ImperativePanelHandle>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [clinicalParameters, setClinicalParameters] =
+    useState<ClinicalParameters>({
+      diagnosis: 'plantar-fasciitis',
+      activityLevel: 5,
+      material: 'polypropylene',
+      archSupportHeight: 15,
+      heelCupDepth: 8,
+      materialThickness: 3,
+      hasMetatarsalPad: false,
+      metatarsalPadHeight: 4,
+      notes: '',
+    });
+
+  const handleParameterChange = <K extends keyof ClinicalParameters>(
+    param: K,
+    value: ClinicalParameters[K],
+  ) => {
+    setClinicalParameters((prev) => ({ ...prev, [param]: value }));
+  };
+
+  const [scadTemplate, setScadTemplate] = useState<string | null>(null);
+  const [generatedScadCode, setGeneratedScadCode] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    fetch('/scad/templates/standard_orthosis.scad')
+      .then((res) => res.text())
+      .then(setScadTemplate);
+  }, []);
+
+  useEffect(() => {
+    if (!scadTemplate) return;
+
+    const scadParameters = {
+      arch_support_height: clinicalParameters.archSupportHeight,
+      heel_cup_depth: clinicalParameters.heelCupDepth,
+      material_thickness: clinicalParameters.materialThickness,
+      has_metatarsal_pad: clinicalParameters.hasMetatarsalPad,
+      metatarsal_pad_height: clinicalParameters.metatarsalPadHeight,
+    };
+
+    const paramsString = Object.entries(scadParameters)
+      .map(([key, value]) => {
+        if (typeof value === 'boolean') {
+          return `${key}=${value ? 'true' : 'false'}`;
+        }
+        return `${key}=${value}`;
+      })
+      .join(', ');
+
+    const code = `standard_orthosis(${paramsString});\n\n${scadTemplate}`;
+    setGeneratedScadCode(code);
+  }, [scadTemplate, clinicalParameters]);
 
   const { data: messages = [] } = useMessagesQuery();
 
@@ -154,11 +209,6 @@ export function ParametricEditor() {
     };
   }, [containerWidth]);
 
-  const hasArtifact = useMemo(
-    () => !!currentMessage?.content.artifact,
-    [currentMessage],
-  );
-
   // Optimized collapse/expand handlers
   const handleChatCollapse = useCallback(() => {
     const panel = chatPanelRef.current;
@@ -173,22 +223,6 @@ export function ParametricEditor() {
     if (panel) {
       panel.expand();
       setIsChatCollapsed(false);
-    }
-  }, []);
-
-  const handleParametersCollapse = useCallback(() => {
-    const panel = parameterPanelRef.current;
-    if (panel) {
-      panel.collapse();
-      setIsParametersPanelCollapsed(true);
-    }
-  }, []);
-
-  const handleParametersExpand = useCallback(() => {
-    const panel = parameterPanelRef.current;
-    if (panel) {
-      panel.expand();
-      setIsParametersPanelCollapsed(false);
     }
   }, []);
 
@@ -245,65 +279,30 @@ export function ParametricEditor() {
           )}
         </PanelResizeHandle>
         <Panel
-          defaultSize={
-            PANEL_SIZES.PREVIEW.DEFAULT +
-            (hasArtifact ? 0 : parametersPanelSizes.defaultSize)
-          }
-          minSize={
-            PANEL_SIZES.PREVIEW.MIN +
-            (hasArtifact ? 0 : parametersPanelSizes.minSize)
-          }
+          defaultSize={PANEL_SIZES.PREVIEW.DEFAULT}
+          minSize={PANEL_SIZES.PREVIEW.MIN}
           id="preview-panel"
           order={1}
         >
-          <ViewerSection />
+          <ViewerSection scadCode={generatedScadCode} />
         </Panel>
-        {hasArtifact && (
-          <>
-            <PanelResizeHandle className="resize-handle group relative">
-              {!isParametersPanelCollapsed && (
-                <div className="absolute right-1 top-1/2 z-50 -translate-y-1/2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                  <Button
-                    variant="ghost"
-                    className="rounded-l-lg rounded-r-none border-b border-l border-t border-gray-200/20 bg-adam-bg-secondary-dark p-2 text-adam-text-primary transition-colors dark:border-gray-800 [@media(hover:hover)]:hover:bg-adam-neutral-950 [@media(hover:hover)]:hover:text-adam-neutral-10"
-                    onClick={handleParametersCollapse}
-                  >
-                    <ChevronsRight className="h-5 w-5" />
-                  </Button>
-                </div>
-              )}
-              {isParametersPanelCollapsed && (
-                <div className="absolute right-0 top-1/2 z-50 -translate-y-1/2">
-                  <Button
-                    aria-label="Expand parameters panel"
-                    onClick={handleParametersExpand}
-                    className="flex h-[140px] w-9 flex-col items-center rounded-l-lg rounded-r-none bg-adam-bg-secondary-dark p-2 px-1.5 py-2 text-adam-text-primary"
-                  >
-                    <ChevronsRight className="mb-3 h-5 w-5 rotate-180 text-white" />
-                    <div className="flex flex-1 items-center justify-center">
-                      <span className="min-w-[100px] -rotate-90 transform text-center text-base font-semibold text-white">
-                        Parameters
-                      </span>
-                    </div>
-                  </Button>
-                </div>
-              )}
-            </PanelResizeHandle>
-            <Panel
-              collapsible
-              ref={parameterPanelRef}
-              defaultSize={parametersPanelSizes.defaultSize}
-              minSize={parametersPanelSizes.minSize}
-              maxSize={parametersPanelSizes.maxSize}
-              id="parameters-panel"
-              order={2}
-            >
-              <div className="relative h-full">
-                <ParameterSection />
-              </div>
-            </Panel>
-          </>
-        )}
+        <PanelResizeHandle className="resize-handle group relative" />
+        <Panel
+          collapsible
+          ref={parameterPanelRef}
+          defaultSize={parametersPanelSizes.defaultSize}
+          minSize={parametersPanelSizes.minSize}
+          maxSize={parametersPanelSizes.maxSize}
+          id="parameters-panel"
+          order={2}
+        >
+          <div className="relative h-full overflow-y-auto">
+            <ClinicalParameterEditor
+              parameters={clinicalParameters}
+              onParameterChange={handleParameterChange}
+            />
+          </div>
+        </Panel>
       </PanelGroup>
     </div>
   );
